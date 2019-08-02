@@ -1,0 +1,254 @@
+---
+title: "MSDS 6372 Project 1: EDA"
+author: "Maureen Stolberg"
+date: "June 2, 2019"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+---
+
+## Predicting Wine Preferences based on it's Physicochemical Properties
+
+**
+Citation Request:
+**
+
+  This dataset is public available for research. The details are described in [Cortez et al., 2009]. 
+  Please include this citation if you plan to use this database:
+
+  P. Cortez, A. Cerdeira, F. Almeida, T. Matos and J. Reis. 
+  Modeling wine preferences by data mining from physicochemical properties.
+  In Decision Support Systems>, Elsevier, 47(4):547-553. ISSN: 0167-9236.
+
+  Available at: https://archive.ics.uci.edu/ml/datasets/Wine+Quality
+
+For more information, read [Cortez et al., 2009].
+
+## Data Description
+
+The datasets are publicly available for research purposes and the details are described in [Cortez et al., 2009]. I collected the data from the UCI repository website (https://archive.ics.uci.edu/ml/datasets/Wine+Quality). Dataset is large enough to rely on its result ( with 4898 white and 1599 red entries ) of Vinho Verde (Portugal Wine Company from the northwest region of Portugal) samples are considered:  
+
+.	winequality-red.csv - red wine preference samples
+.	winequality-white.csv - white wine preference samples  
+
+These data sets include physicochemical and sensory related data to red and white Vinho Verde wine sample. The data were collected from May/2004 to February/2007 using only protected designation of origin samples that were tested at the official certification entity (CVRVV). The CVRVV is an inter-professional organization with the goal of improving the quality and marketing of Vinho Verde. The data were recorded by a computerized system (iLab), which automatically manages the process of wine sample testing from producer requests to the laboratory and sensory analysis. Each entry denotes a given test (analytical or sensory) and the final database was exported into a single sheet (.csv).
+
+**
+Description of attributes:
+**  
+
+**Fixed acidity:** most acids involved with wine or fixed or nonvolatile (do not evaporate readily)  
+
+**Volatile acidity:** the amount of acetic acid in wine, which at too high of levels can lead to an unpleasant, vinegar     taste.  
+
+**Citric acid:** found in small quantities, citric acid can add 'freshness' and flavor to wines  
+
+**Residual sugar:** the amount of sugar remaining after fermentation stops, it's rare to find wines with less than 1       gram/liter and wines with greater than 45 grams/liter are considered sweet.  
+
+**Chlorides:** the amount of salt in the wine  
+
+**Free sulfur dioxide:** the free form of SO2 exists in equilibrium between molecular SO2 (as a dissolved gas) and         bisulfite ion; it prevents microbial growth and the oxidation of wine  
+
+**Total sulfur dioxide:** amount of free and bound forms of S02; in low concentrations, SO2 is mostly undetectable in      wine, but at free SO2 concentrations over 50 ppm, SO2 becomes evident in the nose and taste of wine  
+
+**Density:** the density of water is close to that of water depending on the percent alcohol and sugar content  
+
+**pH:** describes how acidic or basic a wine is on a scale from 0 (very acidic) to 14 (very basic); most wines are         between 3-4 on the pH scale  
+
+**Sulphates:** a wine additive which can contribute to sulfur dioxide gas (S02) levels, wich acts as an antimicrobial and antioxidant  
+
+**Alcohol:** the percent alcohol content of the wine  
+
+**Quality:** output variable (based on sensory data, score between 0 and 10)
+
+## Univariate Data Summary Statistics
+
+**Data Summary**  
+```{r Question 1, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+
+#load my standard toolbox
+suppressPackageStartupMessages(library(tidyverse)) 
+suppressPackageStartupMessages(library(dataMaid))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(gridExtra))
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(corrplot))
+suppressPackageStartupMessages(library(plotly))
+suppressPackageStartupMessages(library(dlookr))
+
+#Set working directory
+setwd("/MSDS6372/winequality")
+
+#load in the red wine data from the UCI ML website
+redwine<-read.csv('http://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-red.csv',sep=';')
+
+#load in the red wine data from the UCI ML website
+whitewine<-read.csv('http://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-white.csv',sep=';')
+
+#Load combined File
+totalwine<-read.csv ("C:/MSDS6372/winequality/CombinedFile.csv")
+
+#Select dataset to analyize/comment out other options
+#wine.data <- redwine
+#wine.data <- whitewine
+wine.data <- totalwine
+
+#Convert categorical variables to factors
+#2nd factor-wine.category is optional-only run if using totalwine file
+wine.data$Quality.Factor <- as.factor(wine.data$quality)
+wine.data$wine.category.f <- as.factor(wine.data$wine.category)
+
+# Define original variable names
+ORIGINAL <- colnames(wine.data) [1:12]
+
+# Define original + categorical (red/white) variable names
+# Optional-valid for totalwine data only.  Otherwise disregard and cancel out command.
+explanatory.variables <- colnames(wine.data)[1:11]
+
+
+#Standardize data
+wine.data_scaled <- data.frame(scale(wine.data[,ORIGINAL]))
+
+#Summary Table of data
+summary(wine.data)
+```
+
+  
+  
+**Descriptive Statistics (Full Dataset)**
+
+```{r Question 2, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+#Full dataset : Descriptive Statistics- sort by skewness
+wine.data %>%
+  describe() %>%
+  select(variable, skewness, mean, p25, p50, p75) %>% 
+  filter(!is.na(skewness)) %>% 
+  arrange(desc(abs(skewness)))
+
+```
+
+
+**Red vs. White Wine: Descriptive Statistics**
+
+```{r Question 3, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+wine.data %>%
+group_by(wine.category) %>%
+describe() %>%
+select(variable,wine.category, skewness, mean, p25, p50, p75) %>% 
+filter(!is.na(skewness)) %>% 
+arrange(desc(variable))
+
+```
+
+## Normality Review
+
+###Scatterplot Matrix
+
+**Red and White Wine dataset combined**  
+
+
+```{r Question 4, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+pairs(wine.data)
+
+```
+
+
+**Red Wine Only**  
+
+```{r Question 4a, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+pairs(redwine, col=redwine$quality)
+
+```
+
+  
+  
+
+**White Wine Only**  
+
+```{r Question 4b, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+pairs(whitewine, col=whitewine$quality)
+
+```
+  
+
+### Distribution Plots (based on original data)
+
+  Where:
+  - Blue line represents the mean
+  - Dark magenta line represents the median
+  - Dashed line represents the 25th and 75th percentile  
+  
+```{r Question 5, echo=FALSE}
+
+dens <- lapply(ORIGINAL, FUN=function(var) {
+  ggplot(wine.data, aes_string(x=var)) + 
+    geom_density(fill='gray') +
+    geom_vline(aes(xintercept=mean(wine.data[, var])), color='blue', size=1) +
+    geom_vline(aes(xintercept=median(wine.data[, var])), color='darkmagenta', size=1) +
+    geom_vline(aes(xintercept=quantile(wine.data[, var], 0.25)), 
+               linetype='dashed', size=0.5) + 
+    geom_vline(aes(xintercept=quantile(wine.data[, var], 0.75)), 
+               linetype='dashed', size=0.5)
+})
+do.call(grid.arrange, args=c(dens, list(ncol=3)))
+
+```
+
+
+Review Variable transformation options to determine if data should be transformed prior to model creation.  
+
+Let:  
+- origin represents normality based on raw unadjusted data
+- Log represents normality based on log transformed data
+- sqrt represents normality based on the square root of original data
+
+
+```{r Question 6, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+#Graph normality prepackage to evaluate transformation options (Origin, log, SqRt)-if needed
+plot_normality(wine.data)
+```
+
+## Relationship Assessment  
+
+**Total Wine Inventory Review (Red + White)**  
+
+Lets explore how thte potential explanatory variables may be correlated to the response.  
+
+```{r Question 7, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+showBoxplt <- function(df, y, x='Quality.Factor', lower=0, upper=.99) {
+  ggplot(df, aes_string(x=x, y=y, fill=x)) + 
+    geom_boxplot() + 
+    ylim(quantile(df[, y], prob=lower), 
+         quantile(df[, y], prob=upper)) +
+    theme(legend.position="none")
+}
+boxp1 <- lapply(explanatory.variables, FUN=function(var) showBoxplt(wine.data, var))
+do.call(grid.arrange, args=c(boxp1, list(ncol=3)))
+
+```
+
+
+**Red Vs. White Wine Review**  
+
+```{r Question 8, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+boxp3 <- lapply(explanatory.variables, 
+                FUN=function(var) showBoxplt(wine.data, y=var, x='wine.category'))
+do.call(grid.arrange, args=c(boxp3, list(ncol=3)))
+
+```
+
+
+
+
+### Correlation Matrix  
+
+```{r Question 9, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+# Plot correlation matrix to determine is collinearity is present
+wine.data %>%
+plot_correlate(explanatory.variables)
+```
